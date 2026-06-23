@@ -14,7 +14,7 @@ export async function loginComEmail(email, senha) {
     }
 
     const { data, error } = await clienteSupabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password: senha
     });
     if (error) throw error;
@@ -32,7 +32,7 @@ export async function cadastrarComEmail(email, senha) {
     }
 
     const { data, error } = await clienteSupabase.auth.signUp({
-        email,
+        email: email.trim(),
         password: senha
     });
     if (error) throw error;
@@ -44,11 +44,11 @@ export async function sair() {
         await clienteSupabase.auth.signOut();
     }
     userAtual = null;
-    for (let key in localStorage) {
+    Object.keys(localStorage).forEach(key => {
         if (key.startsWith('sb-')) {
             localStorage.removeItem(key);
         }
-    }
+    });
     if (typeof window !== 'undefined') window.location.reload();
 }
 
