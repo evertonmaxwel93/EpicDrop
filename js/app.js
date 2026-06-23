@@ -1,5 +1,5 @@
 import { clienteSupabase, isOnline, cacheOffline } from './db.js';
-import { loginComEmail, sair, verificarSessao } from './auth.js';
+import { loginComEmail, sair, verificarSessao, cadastrarComEmail } from './auth.js';
 import { carregarProdutos, salvarProduto, deletarProduto, ordenarProdutosCatalogo, fazerUploadImagem } from './estoque.js';
 import { salvarTransacao, excluirTransacao, gerarTransacoesParceladas, calcularSaldosAcumuladosPorDia, exportarBackupJSON } from './financeiro.js';
 import { criarPedido, atualizarStatusPedido, registrarTaxaCartao, formatarMensagemWhatsApp } from './operacoes.js';
