@@ -1587,6 +1587,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         verificarRotasSPA();
     });
     document.getElementById('admin-login-form').addEventListener('submit', tentarLogin);
+    
+    // Register button handler
+    const btnRegister = document.getElementById('btn-admin-register');
+    if (btnRegister) {
+        btnRegister.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value.trim();
+            const pass = document.getElementById('admin-password').value;
+
+            if (!email || !pass) {
+                mostrarToast("Preencha email e senha para cadastrar.", "warning");
+                return;
+            }
+            if (pass.length < 6) {
+                mostrarToast("A senha deve ter pelo menos 6 caracteres.", "warning");
+                return;
+            }
+
+            mostrarLoading();
+            try {
+                await cadastrarComEmail(email, pass);
+                mostrarToast("Cadastro realizado com sucesso! Faça login para entrar.", "success");
+            } catch (err) {
+                mostrarToast(err.message || "Erro ao realizar cadastro.", "error");
+            } finally {
+                ocultarLoading();
+            }
+        });
+    }
 
     // Admin Logout
     document.getElementById('btn-admin-logout').addEventListener('click', tentarSair);
