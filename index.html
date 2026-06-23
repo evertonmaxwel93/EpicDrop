@@ -3,35 +3,675 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EpicDrop Informática</title>
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>EpicDrop Informática</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-slate-100 text-slate-800 transition-colors">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col transition-colors">
+
+    <!-- Premium Toast Container -->
     <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
-    <div id="loading-overlay" class="fixed inset-0 z-[9998] bg-white/80 dark:bg-slate-900/80 flex items-center justify-center hidden">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-[9998] bg-white/80 flex items-center justify-center hidden">
         <div class="flex flex-col items-center gap-3">
             <div class="spinner"></div>
-            <span class="text-sm font-bold text-slate-500 dark:text-slate-300">Carregando...</span>
+            <span class="text-sm font-bold text-slate-500">Carregando...</span>
         </div>
     </div>
-    
-    <!-- SPA Root Content -->
-    <main id="app-root" class="min-h-screen">
-        <div class="p-8 text-center">
-            <h1 class="text-2xl font-black text-blue-600">EpicDrop Informática</h1>
-            <p class="text-sm text-slate-500 mt-2">Inicializando sistema...</p>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="main-container" class="min-h-screen flex flex-col">
+        
+        <!-- SECTION 1: PUBLIC CATALOG (Default View) -->
+        <section id="public-catalog" class="flex flex-col min-h-screen">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2 font-black text-blue-600 text-lg md:text-xl">
+                    <i class="fas fa-laptop-code"></i> EpicDrop <span class="text-slate-800 dark:text-white font-medium text-sm hidden sm:inline">Informática</span>
+                </div>
+                
+                <!-- Search and Filter in Header -->
+                <div class="flex items-center gap-2 max-w-md flex-1 mx-4">
+                    <div class="relative w-full">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="catalog-search" placeholder="Buscar produtos..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 rounded-lg text-xs outline-none ring-1 ring-slate-200 focus:ring-blue-500 transition">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="catalog-theme-toggle" class="p-2 rounded-lg hover:bg-slate-100 transition text-slate-500">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="btn-admin-access" class="p-2 rounded-lg hover:bg-slate-100 transition text-slate-500" title="Painel Administrativo">
+                        <i class="fas fa-lock"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Catalog Content -->
+            <main class="flex-1 p-4 md:p-6 w-full max-w-6xl mx-auto pb-24">
+                <!-- Filters Bar -->
+                <div class="mb-6 flex flex-wrap gap-2 items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Categoria:</span>
+                        <select id="catalog-category-filter" class="bg-slate-50 rounded-lg p-1.5 font-bold text-xs outline-none ring-1 ring-slate-200">
+                            <option value="Todas">Todas as Categorias</option>
+                        </select>
+                    </div>
+                    <div class="text-xs font-bold text-slate-400">
+                        Mostrando <span id="catalog-count" class="text-blue-600">0</span> produtos
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Cards will be dynamically injected here -->
+                </div>
+            </main>
+
+            <!-- Floating Cart Button -->
+            <button id="btn-floating-cart" class="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 shadow-2xl flex items-center justify-center z-40 transition active:scale-95">
+                <div class="relative">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span id="cart-badge" class="absolute -top-3 -right-3 bg-red-600 text-white text-[10px] font-black rounded-full px-1.5 py-0.5 min-w-[20px] text-center hidden">0</span>
+                </div>
+            </button>
+
+            <!-- Cart Sidebar Drawer -->
+            <div id="cart-drawer" class="fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col border-l border-slate-200">
+                <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                    <h3 class="font-extrabold text-slate-700 flex items-center gap-2">
+                        <i class="fas fa-shopping-cart text-blue-600"></i> Seu Carrinho
+                    </h3>
+                    <button id="btn-close-cart" class="text-slate-400 hover:text-slate-600 p-2"><i class="fas fa-times"></i></button>
+                </div>
+                <!-- Cart Items List -->
+                <div id="cart-items-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <!-- Cart items inserted here -->
+                </div>
+                <!-- Checkout Form -->
+                <div class="p-4 border-t border-slate-200 bg-slate-50 space-y-3">
+                    <div class="flex justify-between items-center font-black text-sm">
+                        <span>Total:</span>
+                        <span id="cart-total" class="text-blue-600">R$ 0,00</span>
+                    </div>
+                    <form id="cart-checkout-form" class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome Completo</label>
+                            <input type="text" id="cart-client-name" required placeholder="Seu nome" class="w-full bg-white rounded-xl p-2.5 text-xs outline-none ring-1 ring-slate-200 focus:ring-blue-500 focus:bg-white transition">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Endereço de Entrega</label>
+                            <textarea id="cart-client-address" required rows="2" placeholder="Rua, Número, Bairro, Cidade (Ponto de referência)" class="w-full bg-white rounded-xl p-2.5 text-xs outline-none ring-1 ring-slate-200 focus:ring-blue-500 focus:bg-white transition resize-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-extrabold py-3 rounded-xl shadow-lg transition text-xs flex items-center justify-center gap-2">
+                            <i class="fab fa-whatsapp text-lg"></i> Enviar Pedido via WhatsApp
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <!-- Cart Drawer Backdrop Overlay -->
+            <div id="cart-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-45 hidden transition-opacity"></div>
+        </section>
+
+        <!-- SECTION 2: ADMIN LOGIN OVERLAY (Hidden unless URL ?admin=true) -->
+        <section id="admin-login-overlay" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4 hidden">
+            <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center relative">
+                <button id="btn-close-login" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+                <div class="mx-auto w-14 h-14 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg mb-4 text-white">
+                    <i class="fas fa-laptop-code text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-1">EpicDrop</h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-6">Painel do Administrador</p>
+                <form id="admin-login-form" class="space-y-3 text-left">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">E-mail</label>
+                        <input type="email" id="admin-email" required placeholder="evertonmaxwel@gmail.com" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none ring-1 ring-slate-200 focus:ring-blue-500 focus:bg-white transition">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Senha</label>
+                        <input type="password" id="admin-password" required placeholder="••••••" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none ring-1 ring-slate-200 focus:ring-blue-500 focus:bg-white transition">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl shadow-lg transition text-xs">Acessar Painel</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- SECTION 3: ADMIN SHELL (Visible when logged in and URL ?admin=true) -->
+        <section id="admin-shell" class="hidden flex-col min-h-screen">
+            <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm flex items-center px-4 py-3">
+                <div class="font-extrabold text-slate-800 whitespace-nowrap border-r pr-4 mr-4 flex items-center gap-2">
+                    <i class="fas fa-laptop-code text-blue-600"></i> EpicDrop Admin
+                </div>
+                <nav id="desktop-nav" class="flex flex-1 gap-1 overflow-x-auto hide-scrollbar">
+                    <button id="btn-tab-financeiro" class="px-3 py-2 text-xs font-extrabold rounded-lg bg-blue-50 text-blue-700 transition flex items-center gap-1.5">
+                        <i class="fas fa-chart-pie text-sm"></i> Financeiro
+                    </button>
+                    <button id="btn-tab-compras" class="px-3 py-2 text-xs font-extrabold rounded-lg text-slate-500 hover:bg-slate-100 transition flex items-center gap-1.5">
+                        <i class="fas fa-shopping-basket text-sm"></i> Compras
+                    </button>
+                    <button id="btn-tab-estoque" class="px-3 py-2 text-xs font-extrabold rounded-lg text-slate-500 hover:bg-slate-100 transition flex items-center gap-1.5">
+                        <i class="fas fa-boxes text-sm"></i> Estoque
+                    </button>
+                    <button id="btn-tab-vendas" class="px-3 py-2 text-xs font-extrabold rounded-lg text-slate-500 hover:bg-slate-100 transition flex items-center gap-1.5">
+                        <i class="fas fa-receipt text-sm"></i> Pedidos
+                    </button>
+                    <button id="btn-tab-relatorios" class="px-3 py-2 text-xs font-extrabold rounded-lg text-slate-500 hover:bg-slate-100 transition flex items-center gap-1.5">
+                        <i class="fas fa-file-invoice-dollar text-sm"></i> DRE / Relatórios
+                    </button>
+                    <button id="btn-tab-ajustes" class="px-3 py-2 text-xs font-extrabold rounded-lg text-slate-500 hover:bg-slate-100 transition flex items-center gap-1.5">
+                        <i class="fas fa-sliders text-sm"></i> Ajustes
+                    </button>
+                </nav>
+                <div class="flex items-center gap-3 ml-auto pl-4">
+                    <span id="admin-user-email" class="text-xs text-slate-400 font-bold hidden md:inline"></span>
+                    <button id="btn-admin-logout" class="text-xs text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg font-extrabold border border-red-200 transition flex items-center gap-1.5">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </div>
+            </header>
+
+            <main class="p-4 md:p-6 flex-1 w-full max-w-6xl mx-auto pb-24">
+                
+                <!-- Tab 1: Financeiro -->
+                <div id="tab-financeiro" class="space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex flex-wrap items-center gap-2 flex-1">
+                            <input type="text" id="financeiro-search" placeholder="Filtrar por descrição..." class="pl-3 pr-2 py-1.5 border bg-slate-50 rounded-lg text-xs font-medium outline-none ring-slate-200 focus:ring-blue-500 w-full sm:w-48">
+                            <select id="financeiro-filter-month" class="bg-slate-50 rounded-lg px-2.5 py-1.5 font-bold text-xs outline-none border">
+                                <option value="Todos">Todos os Meses</option>
+                                <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+                                <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+                                <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+                                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+                            </select>
+                            <select id="financeiro-filter-year" class="bg-slate-50 rounded-lg px-2.5 py-1.5 font-bold text-xs outline-none border">
+                                <!-- Loaded dynamically -->
+                            </select>
+                            <select id="financeiro-grouping" class="bg-slate-50 rounded-lg px-2.5 py-1.5 font-bold text-xs outline-none border">
+                                <option value="dia" selected>Por Dia</option>
+                                <option value="semana">Por Semana</option>
+                                <option value="mes">Por Mês</option>
+                            </select>
+                        </div>
+                        <button id="btn-new-transaction" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-black shadow-lg transition flex items-center gap-1.5">
+                            <i class="fas fa-plus"></i> Novo Lançamento
+                        </button>
+                    </div>
+
+                    <!-- Cash Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Saldo Real</span>
+                            <span id="stat-real-balance" class="text-lg font-black text-slate-800 mt-1">R$ 0,00</span>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider text-green-600">Receitas</span>
+                            <span id="stat-entradas" class="text-lg font-black text-green-600 mt-1">R$ 0,00</span>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider text-red-500">Despesas</span>
+                            <span id="stat-saidas" class="text-lg font-black text-red-500 mt-1">R$ 0,00</span>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider text-blue-600">Balanço</span>
+                            <span id="stat-balanco" class="text-lg font-black text-blue-600 mt-1">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <!-- Transactions Table -->
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Histórico de Transações</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4">Data</th>
+                                        <th class="py-3 px-4">Descrição</th>
+                                        <th class="py-3 px-4">Categoria</th>
+                                        <th class="py-3 px-4">Status</th>
+                                        <th class="py-3 px-4 text-right">Valor Parcela</th>
+                                        <th class="py-3 px-4 text-right">Valor Realizado</th>
+                                        <th class="py-3 px-4 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-transactions-body" class="text-xs divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Aggregated Balances Table -->
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200 bg-slate-50">
+                            <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Saldos Diários e Acumulados</h3>
+                        </div>
+                        <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4">Período</th>
+                                        <th class="py-3 px-4 text-right">Impacto no Período</th>
+                                        <th class="py-3 px-4 text-right">Saldo Acumulado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-balances-body" class="text-xs divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Compras -->
+                <div id="tab-compras" class="hidden space-y-6">
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Histórico de Compras a Fornecedor</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4">Data</th>
+                                        <th class="py-3 px-4">Fornecedor</th>
+                                        <th class="py-3 px-4">Itens Adquiridos</th>
+                                        <th class="py-3 px-4 text-right">Custo Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-compras-body" class="text-xs divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Estoque -->
+                <div id="tab-estoque" class="hidden space-y-6">
+                    <div class="flex items-center justify-between gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-slate-200">
+                        <input type="text" id="estoque-search" placeholder="Pesquisar produtos..." class="pl-3 pr-2 py-1.5 border bg-slate-50 rounded-lg text-xs font-medium outline-none ring-slate-200 focus:ring-blue-500 w-full sm:w-64">
+                        <button id="btn-new-product" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-black shadow-lg transition flex items-center gap-1.5">
+                            <i class="fas fa-plus"></i> Novo Produto
+                        </button>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4">Imagem</th>
+                                        <th class="py-3 px-4">Produto</th>
+                                        <th class="py-3 px-4">Categoria</th>
+                                        <th class="py-3 px-4 text-center">Físico</th>
+                                        <th class="py-3 px-4 text-center">Reservado</th>
+                                        <th class="py-3 px-4 text-right">Preço Custo</th>
+                                        <th class="py-3 px-4 text-right">Preço Venda</th>
+                                        <th class="py-3 px-4 text-center">Promoção</th>
+                                        <th class="py-3 px-4 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-products-body" class="text-xs divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Pedidos -->
+                <div id="tab-vendas" class="hidden space-y-6">
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200 bg-slate-50">
+                            <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Histórico de Pedidos / Vendas</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4">Data</th>
+                                        <th class="py-3 px-4">Cliente / Endereço</th>
+                                        <th class="py-3 px-4">Itens</th>
+                                        <th class="py-3 px-4 text-right">Total</th>
+                                        <th class="py-3 px-4 text-center">Pagamento</th>
+                                        <th class="py-3 px-4 text-center">Entrega</th>
+                                        <th class="py-3 px-4 text-right">Taxa Cartão</th>
+                                        <th class="py-3 px-4 text-center">Ações / Taxas</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-orders-body" class="text-xs divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Relatórios DRE -->
+                <div id="tab-relatorios" class="hidden space-y-6">
+                    <!-- Period Select & Print -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex items-center gap-2">
+                            <select id="relatorio-filter-month" class="bg-slate-50 rounded-lg px-2.5 py-1.5 font-bold text-xs outline-none border">
+                                <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                                <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                                <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                                <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                            </select>
+                            <select id="relatorio-filter-year" class="bg-slate-50 rounded-lg px-2.5 py-1.5 font-bold text-xs outline-none border">
+                                <!-- Loaded dynamically -->
+                            </select>
+                        </div>
+                        <button id="btn-print-dre" class="bg-slate-800 hover:bg-slate-900 text-white font-extrabold px-4 py-2 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-print"></i> Imprimir DRE
+                        </button>
+                    </div>
+
+                    <!-- KPIs -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">EBITDA</span>
+                            <span id="dre-ebitda" class="text-base font-black text-slate-800 mt-1">R$ 0,00</span>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Margem Líquida</span>
+                            <span id="dre-margin" class="text-base font-black text-slate-800 mt-1">0,0%</span>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Markup Médio</span>
+                            <span id="dre-markup" class="text-base font-black text-slate-800 mt-1">0,0%</span>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col justify-between">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ponto de Equilíbrio</span>
+                            <span id="dre-breakeven" class="text-base font-black text-slate-800 mt-1">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <!-- DRE Competência & Caixa Tables -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Competência -->
+                        <div id="dre-competencia-imprimir" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden p-4">
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-3 uppercase tracking-wider border-b pb-2">DRE por Competência</h3>
+                            <table class="w-full text-xs">
+                                <tbody id="dre-competencia-body" class="divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Caixa -->
+                        <div id="dre-caixa-imprimir" class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden p-4">
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-3 uppercase tracking-wider border-b pb-2">DRE por Caixa</h3>
+                            <table class="w-full text-xs">
+                                <tbody id="dre-caixa-body" class="divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Ranking de Produtos -->
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                            <h3 class="font-extrabold text-slate-700 text-xs uppercase tracking-wider">Performance e Ranking de Vendas por Produto</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
+                                    <tr>
+                                        <th class="py-3 px-4">Produto</th>
+                                        <th class="py-3 px-4 text-center">Quantidade Vendida</th>
+                                        <th class="py-3 px-4 text-right">Faturamento Total</th>
+                                        <th class="py-3 px-4 text-right">Lucro Total Gerado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-ranking-body" class="text-xs divide-y divide-slate-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 6: Ajustes -->
+                <div id="tab-ajustes" class="hidden space-y-6">
+                    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-6">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-3 uppercase tracking-wider border-b pb-2">Preferências e PWA</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-700">Tema Escuro (Dark Mode)</h4>
+                                        <p class="text-[10px] text-slate-400">Alterna as overrides estéticas para tons escuros.</p>
+                                    </div>
+                                    <input type="checkbox" id="admin-dark-mode-toggle" class="w-4 h-4 text-blue-600 rounded">
+                                </div>
+                                <div class="flex items-center justify-between border-t pt-4">
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-700">Notificações Push Nativas</h4>
+                                        <p class="text-[10px] text-slate-400">Solicita permissão para receber lembretes de contas a pagar/receber.</p>
+                                    </div>
+                                    <button id="btn-request-notif" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition">Ativar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm mb-3 uppercase tracking-wider border-b pb-2">Segurança e Backup</h3>
+                            <div class="space-y-4">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-700">Exportar Backup JSON</h4>
+                                        <p class="text-[10px] text-slate-400">Exporta transações, produtos e histórico do banco local consolidados.</p>
+                                    </div>
+                                    <button id="btn-export-backup" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-sm">
+                                        <i class="fas fa-file-export"></i> Exportar JSON
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- Admin Bottom Navigation Dock (Mobile) -->
+            <div id="mobile-bottom-dock" class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 z-50 flex justify-around items-center py-2 px-1 shadow-lg pb-safe">
+                <button id="mobile-btn-tab-financeiro" class="mobile-dock-btn flex flex-col items-center justify-center flex-1 py-1 text-slate-400 transition">
+                    <i class="fas fa-chart-pie text-base"></i>
+                    <span class="text-[8px] font-extrabold mt-1">Financeiro</span>
+                </button>
+                <button id="mobile-btn-tab-compras" class="mobile-dock-btn flex flex-col items-center justify-center flex-1 py-1 text-slate-400 transition">
+                    <i class="fas fa-shopping-basket text-base"></i>
+                    <span class="text-[8px] font-extrabold mt-1">Compras</span>
+                </button>
+                <button id="mobile-btn-tab-estoque" class="mobile-dock-btn flex flex-col items-center justify-center flex-1 py-1 text-slate-400 transition">
+                    <i class="fas fa-boxes text-base"></i>
+                    <span class="text-[8px] font-extrabold mt-1">Estoque</span>
+                </button>
+                <button id="mobile-btn-tab-vendas" class="mobile-dock-btn flex flex-col items-center justify-center flex-1 py-1 text-slate-400 transition">
+                    <i class="fas fa-receipt text-base"></i>
+                    <span class="text-[8px] font-extrabold mt-1">Pedidos</span>
+                </button>
+                <button id="mobile-btn-tab-relatorios" class="mobile-dock-btn flex flex-col items-center justify-center flex-1 py-1 text-slate-400 transition">
+                    <i class="fas fa-file-invoice-dollar text-base"></i>
+                    <span class="text-[8px] font-extrabold mt-1">DRE</span>
+                </button>
+                <button id="mobile-btn-tab-ajustes" class="mobile-dock-btn flex flex-col items-center justify-center flex-1 py-1 text-slate-400 transition">
+                    <i class="fas fa-sliders text-base"></i>
+                    <span class="text-[8px] font-extrabold mt-1">Ajustes</span>
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ============ MODALS ============ -->
+
+    <!-- Modal 1: Nova Transação -->
+    <div id="modal-transaction" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4 transition-opacity duration-150 opacity-0 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform scale-95 transition-transform duration-150">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 id="modal-transaction-title" class="font-extrabold text-slate-700 text-sm">Novo Lançamento Financeiro</h3>
+                <button id="btn-close-modal-transaction" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="form-transaction" class="p-6 space-y-4">
+                <input type="hidden" id="transaction-id">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tipo</label>
+                        <select id="transaction-type" required class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                            <option value="Entrada">Entrada (Receita)</option>
+                            <option value="Saída">Saída (Despesa)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Categoria</label>
+                        <input type="text" id="transaction-category" required placeholder="Vendas, Marketing, Aluguel..." class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Descrição</label>
+                    <input type="text" id="transaction-description" required placeholder="Nome do cliente, fornecedor ou serviço" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Valor Parcela</label>
+                        <input type="number" step="0.01" id="transaction-amount-parcela" required placeholder="0,00" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Valor Realizado</label>
+                        <input type="number" step="0.01" id="transaction-amount-realizado" placeholder="0,00 se pago" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Data Vencimento</label>
+                        <input type="date" id="transaction-date-vencimento" required class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Data Realização</label>
+                        <input type="date" id="transaction-date-realizacao" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status</label>
+                        <select id="transaction-status" required class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                            <option value="Pendente">Pendente</option>
+                            <option value="Realizado">Realizado</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Parcelas Recorrência</label>
+                        <input type="number" id="transaction-recurrence-count" min="0" value="0" placeholder="0 = Sem recorrência" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Frequência Recorrência</label>
+                    <select id="transaction-recurrence-frequency" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                        <option value="Mensal">Mensal</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Diário">Diário</option>
+                        <option value="Anual">Anual</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs">Salvar</button>
+                    <button type="button" id="btn-delete-transaction" class="bg-red-100 hover:bg-red-200 text-red-600 font-extrabold py-3 px-4 rounded-xl border border-red-200 transition text-xs hidden">Excluir</button>
+                </div>
+            </form>
         </div>
-    </main>
+    </div>
+
+    <!-- Modal 2: Novo Produto -->
+    <div id="modal-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4 transition-opacity duration-150 opacity-0 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform scale-95 transition-transform duration-150">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 id="modal-product-title" class="font-extrabold text-slate-700 text-sm">Novo Produto</h3>
+                <button id="btn-close-modal-product" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="form-product" class="p-6 space-y-4">
+                <input type="hidden" id="product-id">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nome do Produto</label>
+                    <input type="text" id="product-name" required placeholder="Ex: Memória RAM 8GB DDR4" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Categoria</label>
+                        <input type="text" id="product-category" required placeholder="Memórias, SSDs, Notebooks..." class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Imagem do Produto (Arquivo)</label>
+                        <input type="file" id="product-image-file" accept="image/*" class="w-full bg-slate-50 rounded-xl p-2 text-xs outline-none border">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Qtd Físico</label>
+                        <input type="number" id="product-stock-actual" required min="0" value="0" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Preço Custo</label>
+                        <input type="number" step="0.01" id="product-price-cost" required placeholder="0,00" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Preço Venda</label>
+                        <input type="number" step="0.01" id="product-price-sale" required placeholder="0,00" class="w-full bg-slate-50 rounded-xl p-2.5 text-xs outline-none border">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 border-t pt-3">
+                    <input type="checkbox" id="product-promo" class="w-4 h-4 text-blue-600 rounded">
+                    <div>
+                        <label for="product-promo" class="text-xs font-bold text-slate-700 cursor-pointer">Marcar como "Em Promoção"</label>
+                        <p class="text-[9px] text-slate-400">Adiciona uma badge promocional no catálogo.</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs">Salvar Produto</button>
+                    <button type="button" id="btn-delete-product" class="bg-red-100 hover:bg-red-200 text-red-600 font-extrabold py-3 px-4 rounded-xl border border-red-200 transition text-xs hidden">Excluir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Registro Retroativo de Taxas de Cartão -->
+    <div id="modal-fee" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4 transition-opacity duration-150 opacity-0 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden transform scale-95 transition-transform duration-150">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-extrabold text-slate-700 text-sm">Registrar Taxas de Cartão</h3>
+                <button id="btn-close-modal-fee" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="form-fee" class="p-6 space-y-4">
+                <input type="hidden" id="fee-order-id">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Valor da Taxa Descontada (R$)</label>
+                    <input type="number" step="0.01" min="0" id="fee-amount" required placeholder="0,00" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none border focus:ring-blue-500 transition">
+                    <p class="text-[9px] text-slate-400 mt-1">Registra um lançamento de saída automática do caixa de "Taxas de Cartão" vinculado a esta venda.</p>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 rounded-xl shadow-lg transition text-xs">Salvar Taxa</button>
+            </form>
+        </div>
+    </div>
 
     <!-- JS Módulos -->
     <script type="module" src="js/db.js"></script>
     <script type="module" src="js/auth.js"></script>
-    <script type="module" src="js/financeiro.js"></script>
     <script type="module" src="js/estoque.js"></script>
+    <script type="module" src="js/financeiro.js"></script>
     <script type="module" src="js/operacoes.js"></script>
     <script type="module" src="js/relatorios.js"></script>
     <script type="module" src="js/app.js"></script>
