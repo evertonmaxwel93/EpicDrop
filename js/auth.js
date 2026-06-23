@@ -2,19 +2,22 @@ import { clienteSupabase } from './db.js';
 
 export let userAtual = null;
 
+const EMAILS_AUTORIZADOS = ['evertonmaxwel@gmail.com', 'evertonmaxwel93@gmail.com'];
+
 export async function loginComEmail(email, senha) {
-    if (email.trim() !== 'evertonmaxwel@gmail.com') {
-        throw new Error('Acesso exclusivo para evertonmaxwel@gmail.com.');
+    const emailLimpo = email.trim();
+    if (!EMAILS_AUTORIZADOS.includes(emailLimpo)) {
+        throw new Error('Acesso exclusivo para evertonmaxwel@gmail.com ou evertonmaxwel93@gmail.com.');
     }
     
     // Tratamento para teste unitário local
     if (!clienteSupabase.auth.signInWithPassword) {
-        userAtual = { email: 'evertonmaxwel@gmail.com' };
+        userAtual = { email: emailLimpo };
         return userAtual;
     }
 
     const { data, error } = await clienteSupabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: emailLimpo,
         password: senha
     });
     if (error) throw error;
@@ -23,16 +26,17 @@ export async function loginComEmail(email, senha) {
 }
 
 export async function cadastrarComEmail(email, senha) {
-    if (email.trim() !== 'evertonmaxwel@gmail.com') {
-        throw new Error('Cadastro não autorizado. Apenas evertonmaxwel@gmail.com é permitido.');
+    const emailLimpo = email.trim();
+    if (!EMAILS_AUTORIZADOS.includes(emailLimpo)) {
+        throw new Error('Cadastro não autorizado. Apenas evertonmaxwel@gmail.com ou evertonmaxwel93@gmail.com é permitido.');
     }
 
     if (!clienteSupabase.auth.signUp) {
-        return { email: 'evertonmaxwel@gmail.com' };
+        return { email: emailLimpo };
     }
 
     const { data, error } = await clienteSupabase.auth.signUp({
-        email: email.trim(),
+        email: emailLimpo,
         password: senha
     });
     if (error) throw error;

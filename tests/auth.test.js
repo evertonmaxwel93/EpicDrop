@@ -33,13 +33,15 @@ test('rejeita cadastro de email que nao seja do Everton', async () => {
         await cadastrarComEmail('invasor@gmail.com', '123456');
         assert.fail('Deveria ter lançado erro de email não autorizado');
     } catch (err) {
-        assert.strictEqual(err.message, 'Cadastro não autorizado. Apenas evertonmaxwel@gmail.com é permitido.');
+        assert.strictEqual(err.message, 'Cadastro não autorizado. Apenas evertonmaxwel@gmail.com ou evertonmaxwel93@gmail.com é permitido.');
     }
 });
 
 test('permite cadastro de email do Everton', async () => {
     const user = await cadastrarComEmail('evertonmaxwel@gmail.com', 'senha123');
     assert.strictEqual(user.email, 'evertonmaxwel@gmail.com');
+    const user2 = await cadastrarComEmail('evertonmaxwel93@gmail.com', 'senha123');
+    assert.strictEqual(user2.email, 'evertonmaxwel93@gmail.com');
 });
 
 test('rejeita login de email que nao seja do Everton', async () => {
@@ -47,13 +49,15 @@ test('rejeita login de email que nao seja do Everton', async () => {
         await loginComEmail('invasor@gmail.com', '123456');
         assert.fail('Deveria ter lançado erro de email não autorizado');
     } catch (err) {
-        assert.strictEqual(err.message, 'Acesso exclusivo para evertonmaxwel@gmail.com.');
+        assert.strictEqual(err.message, 'Acesso exclusivo para evertonmaxwel@gmail.com ou evertonmaxwel93@gmail.com.');
     }
 });
 
 test('permite login de email do Everton', async () => {
     const user = await loginComEmail('evertonmaxwel@gmail.com', 'senha123');
     assert.strictEqual(user.email, 'evertonmaxwel@gmail.com');
+    const user2 = await loginComEmail('evertonmaxwel93@gmail.com', 'senha123');
+    assert.strictEqual(user2.email, 'evertonmaxwel93@gmail.com');
 });
 
 test('fluxo de sair limpa a sessao e localstorage', async () => {
