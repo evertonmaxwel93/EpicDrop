@@ -1,0 +1,12 @@
+{
+  "name": "epicdrop-informatica",
+  "version": "1.0.0",
+  "description": "Sistema de gestão financeira e de estoque com catálogo dropshipping para EpicDrop",
+  "main": "js/app.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
